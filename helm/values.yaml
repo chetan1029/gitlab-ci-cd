@@ -1,0 +1,147 @@
+# Default values for product-diagnostics-platform.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+resources:
+  limits:
+    memory: 16Gi
+    cpu: "2"
+
+progressDeadlineSeconds: 1800
+replicaCount: 4
+
+image:
+  repository: armdocker.rnd.ericsson.se/proj-pdp/product-diagnostics-platform
+  pullPolicy: Always
+  tag: ""
+  ports:
+    - containerPort: 8000
+  args:
+    - --proxy-headers
+    - --forwarded-allow-ips
+    - '''*'''
+    - --host
+    - 0.0.0.0
+    - product_diagnostics_platform.main:app
+  command:
+    - uvicorn
+  env:
+    - name: PDP_OPENSEARCH_HOSTS
+      value: "[\"seroiudb00967.sero.gic.ericsson.se\",\"seroiudb00968.sero.gic.ericsson.se\",\"seroiudb02429.sero.gic.ericsson.se\",\"seroiudb02430.sero.gic.ericsson.se\",\"seroiudb02431.sero.gic.ericsson.se\"]"
+    - name: PDP_OPENSEARCH_PORT
+      value: "9201"
+    - name: PDP_OPENSEARCH_USER
+      valueFrom:
+        secretKeyRef:
+          name: pdp-api-dev-secrets
+          key: pdp_opensearch_user
+    - name: PDP_OPENSEARCH_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: pdp-api-dev-secrets
+          key: pdp_opensearch_password
+    - name: PQAT_OPENSEARCH_HOST
+      value: datastream-search-opensearch.sero.wh.rnd.internal.ericsson.com
+    - name: PQAT_OPENSEARCH_PORT
+      value: "443"
+    - name: PQAT_OPENSEARCH_GLOBAL_INDEX
+      value: datastream-archive-event-pqat-proactive
+    - name: PQAT_OPENSEARCH_GLOBAL_ROLE
+      value: NPEE_RADIO-SW_PDP-Dashboard_viewer_Ericsson_access
+    - name: PQAT_OPENSEARCH_GLOBAL_USER
+      valueFrom:
+        secretKeyRef:
+          name: pdp-api-dev-secrets
+          key: pqat_opensearch_global_user
+    - name: PQAT_OPENSEARCH_GLOBAL_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: pdp-api-dev-secrets
+          key: pqat_opensearch_global_password
+    - name: PQAT_OPENSEARCH_RESTRICTED_INDEX
+      value: rdi-proactive-restricted-consumer
+    - name: PQAT_OPENSEARCH_RESTRICTED_ROLE
+      value: NPEE_RADIO-SW_PDP-Dashboard_viewer-limited_Ericsson_access
+    - name: PQAT_OPENSEARCH_RESTRICTED_USER
+      valueFrom:
+        secretKeyRef:
+          name: pdp-api-dev-secrets
+          key: pqat_opensearch_restricted_user
+    - name: PQAT_OPENSEARCH_RESTRICTED_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: pdp-api-dev-secrets
+          key: pqat_opensearch_restricted_password
+    - name: PQAT_S3_ENDPOINT
+      value: dsi-mapr-s3-prod.sero.wh.rnd.internal.ericsson.com
+    - name: PQAT_S3_LOG_BUCKET
+      value: archive
+    - name: PQAT_OLD_S3_SERVER
+      value: https://pqat-s3-api-devel.natta035.rnd.gic.ericsson.se/
+    - name: PQAT_OLD_S3_LOG_BUCKET
+      value: datacollection
+    - name: PQAT_OLD_S3_LOG_BUCKET_PREFIX
+      value: Logs
+    - name: PDP_OPENSEARCH_SIGNATURE_INDEX
+      value: pdp_signatures_v1.x.x
+    - name: PDP_OPENSEARCH_ESID_INDEX
+      value: pdp_matched_patterns_v1.x.x
+    - name: PDP_OPENSEARCH_PYLC_INDEX
+      value: pdp_py_logcheck_verdicts_v1.x.x
+    - name: PDP_OPENSEARCH_SHLC_INDEX
+      value: pdp_sh_logcheck_verdicts_v1.x.x
+    - name: PDP_OPENSEARCH_GLOBALID_INDEX
+      value: global_id_mapping_v1.x.x
+    - name: PDP_OPENSEARCH_PRODUCTNAME_INDEX
+      value: product_name_mapping_v1.x.x
+    - name: PDP_OPENSEARCH_SWPACK_INDEX
+      value: sw_pack_mapping_v1.x.x
+    - name: SEARCH_MIN_DATE
+      value: 2001-01-01
+    - name: SEARCH_MAX_DATE
+      value: 2022-12-31
+    - name: LOG_FILE_LIMIT
+      value: "150"
+    - name: MWC_NAMESPACE
+      value: mvc
+    - name: MWC_ARGO_HOST
+      value: https://des-argo.pregl021.rnd.gic.ericsson.se
+    - name: MWC_ARGO_HOST_TAIL
+      value: workflows
+    - name: MWC_IMAGE
+      value: armdocker.rnd.ericsson.se/proj-dsi-portal/most-wanted-counters:0.0.1
+    - name: EV_NAMESPACE
+      value: product-diagnostic-platform
+    - name: EV_ARGO_HOST
+      value: https://des-argo.pregl021.rnd.gic.ericsson.se
+    - name: EV_ARGO_HOST_TAIL
+      value: workflows
+    - name: EV_IMAGE
+      value: armdocker.rnd.ericsson.se/proj-pdp/logcheck-bash:v0.1.49
+    - name: EV_ENCRYPTION_KEY
+      valueFrom:
+        secretKeyRef:
+          name: pdp-api-dev-secrets
+          key: ev_encryption_key
+    - name: PDP_NOTIFICATIONS_IMAGE
+      value: armdocker.rnd.ericsson.se/proj-pdp/pdp-notifications:v0.1.58
+    - name: ESID_IMAGE
+      value: armdocker.rnd.ericsson.se/proj-pdp/pdu-radio-esi-debugger:v0.2.1
+    - name: PDP_OPENSEARCH_TEMP_INDEX
+      value: pdp_temp_file_paths
+    - name: PDP_OPENSEARCH_TEMP_COUNTS_INDEX
+      value: pdp_temp_counts
+    - name: PDP_DEVELOPER_ROLE
+      value: NPEE_RADIO-SW_PDP-Dashboard_user_Ericsson_access
+    - name: PDP_OPENSEARCH_LOGGING_INDEX
+      value: pdp_logging_info_v1.x.x
+    - name: PDP_OPENSEARCH_USER_ACTIVITY_INDEX
+      value: pdp_activity_info_v1.x.x
+    - name: PDP_OPENSEARCH_GAAID_INDEX
+      value: pdp_gaaid_verdicts_v1.x.x
+imagePullSecrets:
+  - name: pdp-imagepull-secret
+
+service:
+  type: ClusterIP
+  port: 8000
