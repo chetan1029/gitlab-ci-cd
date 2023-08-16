@@ -1,0 +1,68 @@
+stages:
+  - release
+  - deploy
+
+package:
+  stage: release
+  image:
+    name: armdocker.rnd.ericsson.se/proj-dsi-portal/util/des-cbo:1.0.0
+    entrypoint: [""]
+  before_script:
+    - pip install poetry -i https://arm.sero.gic.ericsson.se/artifactory/api/pypi/pypi-remote/simple/
+  script:
+    - export PYTHONIOENCODING=utf-8
+    - poetry build
+    - poetry config repositories.artifactory "$ARTIFACTORY_URL"
+    - poetry publish -r artifactory -u "$ARTIFACTORY_USER" -p "$ARTIFACTORY_TOKEN"
+  only:
+    - tags
+  except:
+    - ^(?!main).+@
+
+container:
+  stage: release
+  needs: ["package"]
+  image:
+    name: armdocker.rnd.ericsson.se/proj-dsi-portal/external/kaniko-project:debug
+    entrypoint: [""]
+  before_script:
+    - mkdir -p /kaniko/.docker
+    - echo 
+      "{\"auths\":{\"$ARTIFACTORY_DOCKER_URL\":{\"username\":\"$ARTIFACTORY_DOCKER_USER\",\"password\":\"$ARTIFACTORY_DOCKER_TOKEN\"}}}" 
+      > /kaniko/.docker/config.json
+    - tag="$CI_COMMIT_TAG"
+  script:
+    - /kaniko/executor
+      --insecure
+      --skip-tls-verify
+      --context
+      $CI_PROJECT_DIR
+      --dockerfile 
+      $CI_PROJECT_DIR/Dockerfile
+      --destination
+      armdocker.rnd.ericsson.se/proj-pdp/$CI_PROJECT_NAME:$tag
+  only:
+    - tags
+  except:
+    - ^(?!main).+@
+
+deploy:
+  stage: deploy
+  needs: ["container"]
+  image:
+    name: armdocker.rnd.ericsson.se/proj-dsi-portal/util/des-cbo:1.0.0
+    entrypoint: [""]
+  before_script:
+      - mkdir -p /home/jovyan/.kube
+      - echo ${KUBE_CONFIG_TARGET} > ${KUBECONFIG}
+      #- kubectl create namespace pdp || echo "Namespace exists!"
+      #- kubectl annotate namespace pdp field.cattle.io/projectId=$RANCHERID --overwrite=true
+  script:
+      #- helm upgrade --install $CI_PROJECT_NAME-deployment --namespace pdp helm
+      - helm upgrade -f $CI_PROJECT_DIR/helm/values.yaml --set image.tag=$CI_COMMIT_TAG pdp-api-dev helm --namespace=pdp
+      - sleep 30
+      - kubectl get pods --namespace=pdp
+  only:
+    - tags
+  except:
+    - ^(?!main).+@
